@@ -3,13 +3,13 @@
 # Script to send the result of a PostgreSQL query as CSV by e-mail.
 # Much requested by office clerks.
 if [ $# -ne 3 ]; then
-	echo "Error...
-	
+  echo "Error...
+  
 This script needs exactly THREE arguments:
 
-	1. Database name
-	2. E-mail address
-	3. SQL query, surrounded by DOUBLE QUOTES
+  1. Database name
+  2. E-mail address
+  3. SQL query, surrounded by DOUBLE QUOTES
 
 Example:
 $0 mydb sysadmin@terena.org \"SELECT fname FROM users\"
@@ -18,16 +18,16 @@ Long or complicated queries can be stored in an SQL text file:
 
 $0 mydb sysadmin@terena.org \"\`cat complicated.sql\`\"
 "
-	exit
+  exit
 else
-	RAND=$RANDOM
+  RAND=$RANDOM
 
-	UTF8_CSV="Database_results_`date +%F_%Hh%Mm%Ss`_MailMarge_UTF8_$RAND.csv"
-	UTF16_CSV="Database_results_`date +%F_%Hh%Mm%Ss`_Excel_UTF16_$RAND.csv"
-	# LATIN1 is needed, UTF8 borks out on CSV
-	psql "$1" -Atc "COPY ($3) to '/tmp/$UTF8_CSV' WITH CSV HEADER"
-	
-	(echo -en '\xFF\xFE\c' & iconv -t UTF-16LE "/tmp/$UTF8_CSV") > "/tmp/$UTF16_CSV"
+  UTF8_CSV="Database_results_`date +%F_%Hh%Mm%Ss`_MailMarge_UTF8_$RAND.csv"
+  UTF16_CSV="Database_results_`date +%F_%Hh%Mm%Ss`_Excel_UTF16_$RAND.csv"
+  # LATIN1 is needed, UTF8 borks out on CSV
+  psql "$1" -Atc "COPY ($3) to '/tmp/$UTF8_CSV' WITH CSV HEADER" 
+  
+  (echo -en '\xFF\xFE\c' & iconv -t UTF-16LE "/tmp/$UTF8_CSV") > "/tmp/$UTF16_CSV"
 cd /tmp
 from="Postgres user <postgres>"
 to=$2
@@ -89,8 +89,8 @@ $body
 # now loop over the attachments, guess the type
 # and produce the corresponding part, encoded base64
 for file in "${attachments[@]}"; do
-	[ ! -f "/tmp/$file" ] && echo "Warning: attachment $file not found, skipping" >&2 && continue
-	
+  [ ! -f "/tmp/$file" ] && echo "Warning: attachment $file not found, skipping" >&2 && continue
+  
 printf '%s\n' "--${boundary}
 Content-Type: text/csv
 Content-Transfer-Encoding: base64
