@@ -2,9 +2,12 @@ Miscellaneous scripts for use in Linux system administration.
 
 # generated_ecc_csr.sh
 
-Generates an ECC private key and corresponding
-Certificate Signing Request. The output is send to stdout, so no key materials
-are leaked onto disk. The first argument will be treated as the Common Name.
+Generates an ECC private key and corresponding Certificate Signing Request.
+The output is sent to `stdout` to prevent key materials from leaking to disk,
+and to allow copy/pasting into more secure storage such as HashiCorp Vault,
+ansible vault, hiera-eyaml, etc.
+
+The first argument will be treated as the Common Name.
 Any further arguments will treated as Subject Altenative Names.
 Example:
 
