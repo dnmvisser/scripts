@@ -16,7 +16,7 @@ else
   s="subjectAltName="
   for san in `echo $@`; do s="${s}DNS:$san,"; done
   openssl req -newkey ec:<(openssl ecparam -name prime256v1) \
-    -nodes -subj /CN=${s1}/ -keyout /dev/stdout 2>/dev/null \
+    -nodes -subj /CN=${1}/ -keyout /dev/stdout 2>/dev/null \
     -reqexts SAN -extensions SAN \
     -config <(printf "[req]\ndistinguished_name=rdn\n[rdn]\n[SAN]\n`echo ${s} | sed 's/.$//'`")
 fi
