@@ -1,6 +1,6 @@
 Miscellaneous scripts for use in Linux system administration.
 
-# generated_ecc_csr.sh
+# generate_ecc_csr.sh
 
 Generates an ECC private key and corresponding Certificate Signing Request.
 The output is sent to `stdout` to prevent key materials from leaking to disk,
