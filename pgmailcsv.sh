@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Script to send the result of a PostgreSQL query as CSV by e-mail.
 # Much requested by office clerks.

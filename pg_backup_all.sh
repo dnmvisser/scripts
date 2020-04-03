@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 #  Conditional backups of all PostgreSQL databases.
 #  Dick Visser <dick@tienhuis.nl>
