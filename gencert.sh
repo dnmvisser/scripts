@@ -10,13 +10,6 @@ KEY_TYPES=(ECC RSA)
 EC_CURVES=(prime256v1 secp384r1)
 RSA_SIZES=(2048 3072 4096)
 
-#if test -t 0 ; then
-#  PRIVATE_KEY=""
-#else
-#  PRIVATE_KEY="$(cat -)"
-#  echo "input: $input"
-#fi
-
 
 if [ $# -lt 1 ]; then
   echo "Usage: ${BASH_SOURCE} cn <san_1 san_2 san_3 san_4 ... san_n>
@@ -37,7 +30,7 @@ function selectWithDefault() {
   # Prompt the user for the index of the desired item.
   while :; do
     printf %s "${PS3-#? }" >&2 # Print the prompt string to stderr, as `select` does.
-    read -r index
+    read -r index < /dev/tty
     # Make sure that the input is either empty or that a valid index was entered.
     [[ -z $index ]] && break  # empty input
     (( index >= 1 && index <= numItems )) 2>/dev/null || { echo "Invalid selection. Please try again." >&2; continue; }
@@ -54,6 +47,17 @@ function selectWithDefault() {
 }
 
 
+# Test to see if we have a valid private key in stdin
+if ! test -t 0 ; then
+  INPUT="$(< /dev/stdin)"
+  if echo "$INPUT" | openssl pkey -noout; then
+    PRIVATE_KEY=$(echo "$INPUT" | openssl pkey)
+  else
+    exit 1
+  fi
+fi
+
+
 
 echo "Select generation type"
 SIGN_TYPE=$(selectWithDefault "${SIGN_TYPES[@]}")
@@ -63,6 +67,7 @@ if [ $SIGN_TYPE = "Self-signed" ]; then
 fi
 
 
+# FIXME only do this when we don't have a privaite key from stdin
 echo "Select key type"
 KEY_TYPE=$(selectWithDefault "${KEY_TYPES[@]}")
 
@@ -81,35 +86,34 @@ else
 fi
 
 
+#
+if [ -z "$PRIVATE_KEY" ]; then
+  KEY_SRC="-newkey ${KEY_SPEC} -keyout /dev/stdout 2>/dev/null"
+else
+  KEY_SRC="-new -key <(echo -n \"${PRIVATE_KEY}\")"
+fi
+
+
+
 if [ $SIGN_TYPE = "CA-signed" ]; then
   if [ $# -eq 1 ]; then
-    # One argument, this must be cn
-    if [ -z "${PRIVATE_KEY}" ]; then
-      # no key on stdin, generate one ourselves
-      echo "no key on stdin, geenreat one ourselves"
-      openssl req -newkey ${KEY_SPEC} \
-        -nodes -subj /CN=${1}/ -keyout /dev/stdout 2>/dev/null
-    else
-      # use key from stdin
-      echo "found key on stdin, using that"
-      openssl req -key <(echo $PRIVATE_KEY) \
-        -nodes -subj /CN=${1}/ 2>/dev/null
-    fi
+    # One argument => simple scenario
+    eval "openssl req -nodes -subj /CN=${1}/ $KEY_SRC"
   else
-    # More than one argument => first is cn, rest is list of SANs
+    # More than one argument => first arg is CN, the rest is the list of SANs
     s="subjectAltName="
     for san in `echo $@`; do s="${s}DNS:$san,"; done
-    openssl req -newkey ${KEY_SPEC} \
-      -nodes -subj /CN=${1}/ -keyout /dev/stdout 2>/dev/null \
+    eval "openssl req -nodes -subj /CN=${1}/ $KEY_SRC \
       -reqexts SAN -extensions SAN \
-      -config <(printf "[req]\ndistinguished_name=rdn\n[rdn]\n[SAN]\n`echo ${s} | sed 's/.$//'`")
+      -config <(printf \"[req]\ndistinguished_name=rdn\n[rdn]\n[SAN]\n`echo ${s} | sed 's/.$//'`\")"
   fi
 elif [ $SIGN_TYPE = "Self-signed" ]; then
   all_args="${@}"
 
-  # For self-signed there is only CN=blah (no SubjAltNames etc)
-  openssl req -new -newkey ${KEY_SPEC} -days 3650 \
-    -nodes -x509 -subj /CN="${all_args}"/ -keyout /dev/stdout 2>/dev/null
+  # For self-signed there is ONLY "CN=blah", and NO SubjAltNames.
+  #openssl req -new -newkey ${KEY_SPEC} -days 3650 \
+  #  -nodes -x509 -subj /CN="${all_args}"/ -keyout /dev/stdout 2>/dev/null
+  eval "openssl req -nodes -days 3650 -x509 -subj /CN="${all_args}"/ ${KEY_SRC}"
 else
   echo "Not implemented yet"
 fi
