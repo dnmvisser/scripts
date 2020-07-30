@@ -10,6 +10,13 @@ KEY_TYPES=(ECC RSA)
 EC_CURVES=(prime256v1 secp384r1)
 RSA_SIZES=(2048 3072 4096)
 
+#if test -t 0 ; then
+#  PRIVATE_KEY=""
+#else
+#  PRIVATE_KEY="$(cat -)"
+#  echo "input: $input"
+#fi
+
 
 if [ $# -lt 1 ]; then
   echo "Usage: ${BASH_SOURCE} cn <san_1 san_2 san_3 san_4 ... san_n>
@@ -77,8 +84,17 @@ fi
 if [ $SIGN_TYPE = "CA-signed" ]; then
   if [ $# -eq 1 ]; then
     # One argument, this must be cn
-    openssl req -newkey ${KEY_SPEC} \
-      -nodes -subj /CN=${1}/ -keyout /dev/stdout 2>/dev/null 
+    if [ -z "${PRIVATE_KEY}" ]; then
+      # no key on stdin, generate one ourselves
+      echo "no key on stdin, geenreat one ourselves"
+      openssl req -newkey ${KEY_SPEC} \
+        -nodes -subj /CN=${1}/ -keyout /dev/stdout 2>/dev/null
+    else
+      # use key from stdin
+      echo "found key on stdin, using that"
+      openssl req -key <(echo $PRIVATE_KEY) \
+        -nodes -subj /CN=${1}/ 2>/dev/null
+    fi
   else
     # More than one argument => first is cn, rest is list of SANs
     s="subjectAltName="
